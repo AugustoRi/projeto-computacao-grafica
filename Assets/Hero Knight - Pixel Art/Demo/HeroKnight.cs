@@ -6,7 +6,7 @@ public class HeroKnight : MonoBehaviour {
     [SerializeField] float      m_speed = 4.0f;
     [SerializeField] float      m_jumpForce = 7.5f;
     [SerializeField] float      m_rollForce = 6.0f;
-    [SerializeField] bool       m_noBlood = false;
+    //[SerializeField] bool       m_noBlood = false;
     [SerializeField] GameObject m_slideDust;
 
     public Animator            m_animator;
@@ -26,6 +26,10 @@ public class HeroKnight : MonoBehaviour {
     private float               m_rollDuration = 8.0f / 14.0f;
     private float               m_rollCurrentTime;
 
+    [Header("Attack variables")]
+    public Transform attackSensor;
+    public float radiusAttack;
+    public LayerMask layerEnemy;
 
     // Use this for initialization
     void Start ()
@@ -42,6 +46,8 @@ public class HeroKnight : MonoBehaviour {
     // Update is called once per frame
     void Update ()
     {
+        
+
         // Increase timer that controls attack combo
         m_timeSinceAttack += Time.deltaTime;
 
@@ -95,25 +101,27 @@ public class HeroKnight : MonoBehaviour {
         m_isWallSliding = (m_wallSensorR1.State() && m_wallSensorR2.State()) || (m_wallSensorL1.State() && m_wallSensorL2.State());
         m_animator.SetBool("WallSlide", m_isWallSliding);
 
-        //Death
+        /*Death
         if (Input.GetKeyDown("e") && !m_rolling)
         {
             m_animator.SetBool("noBlood", m_noBlood);
             m_animator.SetTrigger("Death");
         }
             
-        //Hurt
+        Hurt
         else if (Input.GetKeyDown("q") && !m_rolling)
-            m_animator.SetTrigger("Hurt");
+            m_animator.SetTrigger("Hurt");*/
 
         //Attack
-        else if(Input.GetMouseButtonDown(0) && m_timeSinceAttack > 0.25f && !m_rolling)
+        if(Input.GetMouseButtonDown(0) && m_timeSinceAttack > 0.25f && !m_rolling)
         {
             m_currentAttack++;
 
             // Loop back to one after third attack
             if (m_currentAttack > 3)
+            {
                 m_currentAttack = 1;
+            }
 
             // Reset Attack combo if time since last attack is too large
             if (m_timeSinceAttack > 1.0f)
@@ -123,8 +131,15 @@ public class HeroKnight : MonoBehaviour {
             m_animator.SetTrigger("Attack" + m_currentAttack);
 
             // Reset timer
+            PlayerAttack();
             m_timeSinceAttack = 0.0f;
+
+            // Flip Attack
+            attackSensor.localPosition = new Vector2(-attackSensor.localPosition.x, attackSensor.localPosition.y);
+            
         }
+
+        
 
         // Block
         else if (Input.GetMouseButtonDown(1) && !m_rolling)
@@ -190,6 +205,22 @@ public class HeroKnight : MonoBehaviour {
             GameObject dust = Instantiate(m_slideDust, spawnPosition, gameObject.transform.localRotation) as GameObject;
             // Turn arrow in correct direction
             dust.transform.localScale = new Vector3(m_facingDirection, 1, 1);
+        }
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(attackSensor.position, radiusAttack);
+    }
+
+    void PlayerAttack()
+    {
+        Collider2D[] enemiesAttack = Physics2D.OverlapCircleAll (attackSensor.position, radiusAttack, layerEnemy);
+        for (int i = 0; i < enemiesAttack.Length; i++)
+        {
+            enemiesAttack[i].SendMessage("EnemyHit");
+            Debug.Log(enemiesAttack[i].name);
         }
     }
 }
