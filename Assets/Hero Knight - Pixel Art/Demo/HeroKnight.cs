@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using System.Threading;
 
 public class HeroKnight : MonoBehaviour
 {
@@ -13,7 +14,12 @@ public class HeroKnight : MonoBehaviour
     [SerializeField] GameObject m_slideDust;
 
     public Animator m_animator;
+    public Transform attackPoint;
+    public float attackRange = 0.5f;
+    public LayerMask enemyLayers;
+
     private Collider2D m_collider2d;
+    private BoxCollider2D m_boxcollider2d;
     private Rigidbody2D m_body2d;
     private Sensor_HeroKnight m_groundSensor;
     private Sensor_HeroKnight m_wallSensorR1;
@@ -25,17 +31,11 @@ public class HeroKnight : MonoBehaviour
     private bool m_rolling = false;
     private int m_facingDirection = 1;
     private int m_currentAttack = 0;
+    public int attackDamage = 1;
     private float m_timeSinceAttack = 0.0f;
     private float m_delayToIdle = 0.0f;
     private float m_rollDuration = 8.0f / 14.0f;
     private float m_rollCurrentTime;
-
-    [Header("Attack variables")]
-    public Transform attackSensor;
-    public float radiusAttack;
-    public LayerMask layerEnemy;
-
-
 
     // Use this for initialization
     void Start()
@@ -43,6 +43,7 @@ public class HeroKnight : MonoBehaviour
         m_animator = GetComponent<Animator>();
         m_body2d = GetComponent<Rigidbody2D>();
         m_collider2d = GetComponent<Collider2D>();
+        m_boxcollider2d = GetComponent<BoxCollider2D>();
         m_groundSensor = transform.Find("GroundSensor").GetComponent<Sensor_HeroKnight>();
         m_wallSensorR1 = transform.Find("WallSensor_R1").GetComponent<Sensor_HeroKnight>();
         m_wallSensorR2 = transform.Find("WallSensor_R2").GetComponent<Sensor_HeroKnight>();
@@ -112,38 +113,18 @@ public class HeroKnight : MonoBehaviour
         {
             m_currentAttack++;
 
-            // Loop back to one after third attack
-            if (m_currentAttack > 3)
+            m_animator.SetTrigger("Attack");
+
+            Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayers);
+
+            foreach(Collider2D enemy in hitEnemies)
             {
-                m_currentAttack = 1;
+                enemy.GetComponent<TriggerDamage>().TakeDamage(1);
             }
 
-            // Reset Attack combo if time since last attack is too large
-            if (m_timeSinceAttack > 1.0f)
-                m_currentAttack = 1;
-
-            // Call one of three attack animations "Attack1", "Attack2", "Attack3"
-            m_animator.SetTrigger("Attack" + m_currentAttack);
-
             // Reset timer
-            PlayerAttack();
             m_timeSinceAttack = 0.0f;
-
-            // Flip Attack
-            attackSensor.localPosition = new Vector2(-attackSensor.localPosition.x, attackSensor.localPosition.y);
-
         }
-
-
-        // Block
-        else if (Input.GetMouseButtonDown(1) && !m_rolling)
-        {
-            m_animator.SetTrigger("Block");
-            m_animator.SetBool("IdleBlock", true);
-        }
-
-        else if (Input.GetMouseButtonUp(1))
-            m_animator.SetBool("IdleBlock", false);
 
         // Roll
         else if (Input.GetKeyDown("left shift") && !m_rolling && !m_isWallSliding)
@@ -151,8 +132,8 @@ public class HeroKnight : MonoBehaviour
             m_rolling = true;
             m_animator.SetTrigger("Roll");
             m_body2d.velocity = new Vector2(m_facingDirection * m_rollForce, m_body2d.velocity.y);
+            m_boxcollider2d.size = new Vector2(m_boxcollider2d.size.x, m_boxcollider2d.size.y * 0.5f);
         }
-
 
         //Jump
         else if (Input.GetKeyDown("space") && m_grounded && !m_rolling)
@@ -205,17 +186,8 @@ public class HeroKnight : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(attackSensor.position, radiusAttack);
-    }
+        if (attackPoint == null) return;
 
-    void PlayerAttack()
-    {
-        Collider2D[] enemiesAttack = Physics2D.OverlapCircleAll(attackSensor.position, radiusAttack, layerEnemy);
-        for (int i = 0; i < enemiesAttack.Length; i++)
-        {
-            enemiesAttack[i].SendMessage("EnemyHit");
-            Debug.Log(enemiesAttack[i].name);
-        }
+        Gizmos.DrawWireSphere(attackPoint.position, attackRange);
     }
 }
