@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using System.Threading;
+using UnityEngine.SceneManagement;
 
 public class HeroKnight : MonoBehaviour
 {
@@ -132,7 +133,6 @@ public class HeroKnight : MonoBehaviour
             m_rolling = true;
             m_animator.SetTrigger("Roll");
             m_body2d.velocity = new Vector2(m_facingDirection * m_rollForce, m_body2d.velocity.y);
-            m_boxcollider2d.size = new Vector2(m_boxcollider2d.size.x, m_boxcollider2d.size.y * 0.5f);
         }
 
         //Jump

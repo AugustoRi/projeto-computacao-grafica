@@ -20,18 +20,12 @@ namespace Cainos.PixelArtPlatformer_VillageProps
                 animator.SetBool("IsOpened", isOpened);
             }
         }
-        private bool isOpened;
+        private bool isOpened = false;
 
-        [FoldoutGroup("Runtime"),Button("Open"), HorizontalGroup("Runtime/Button")]
-        public void Open()
+        public void OnTriggerEnter2D(Collider2D other)
         {
-            IsOpened = true;
+            if (other.gameObject.CompareTag("Player")) IsOpened = true;
         }
 
-        [FoldoutGroup("Runtime"), Button("Close"), HorizontalGroup("Runtime/Button")]
-        public void Close()
-        {
-            IsOpened = false;
-        }
     }
 }
